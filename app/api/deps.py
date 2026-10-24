@@ -4,7 +4,7 @@ IMPORTANT about "users": this learning version has no login. The browser creates
 random client id and sends it in the `X-Client-ID` header; every document, index and
 chat message is scoped to it. That prevents accidental mixing, but it is NOT security:
 anyone who knows or guesses an id can use it. A real deployment needs authentication
-(e.g. OAuth/JWT), authorization and tenant isolation per college.
+(e.g. OAuth/JWT), authorization and tenant isolation per organization or user.
 """
 
 import threading

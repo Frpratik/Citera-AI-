@@ -69,7 +69,14 @@ class Settings(BaseSettings):
 
     @property
     def db_path(self) -> Path:
-        return self.data_dir / "collegemate.db"
+        legacy = self.data_dir / "collegemate.db"
+        modern = self.data_dir / "citera.db"
+        if legacy.exists() and not modern.exists():
+            try:
+                legacy.rename(modern)
+            except Exception:
+                return legacy
+        return modern
 
     @property
     def max_upload_bytes(self) -> int:

@@ -110,8 +110,8 @@ class FakeLLM:
             return RouteDecision(route="greeting", reason="greeting")
         if "maybe" in q:
             return RouteDecision(route="uncertain", reason="ambiguous")
-        if any(word in q for word in ("attendance", "fee", "hostel", "exam", "scholarship")):
-            return RouteDecision(route="college_document", reason="college topic")
+        if any(word in q for word in ("attendance", "fee", "hostel", "exam", "scholarship", "document", "policy", "report")):
+            return RouteDecision(route="document", reason="document topic")
         return RouteDecision(route="general_knowledge", reason="general")
 
     def answer_rag(self, question: str, chunks: list[RetrievedChunk]) -> RagAnswer:

@@ -22,7 +22,7 @@ class GraphState(TypedDict, total=False):
     history: list[dict]  # recent [{"role": "user"|"assistant", "content": "..."}]
 
     # --- set by classify_question ---
-    route: str  # greeting | general_knowledge | college_document | uncertain
+    route: str  # greeting | general_knowledge | document | college_document | uncertain
     route_reason: str
 
     # --- set by retrieve_documents ---

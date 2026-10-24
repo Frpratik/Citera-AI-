@@ -1,10 +1,8 @@
-# CollegeMate AI — End-to-End Guide
+# Citera AI — End-to-End Guide
 
-CollegeMate AI is an AI college assistant. Students, colleges or administrators **upload college PDFs**
-(rules, fee structures, attendance policy, hostel rules, exam rules, scholarships, placements…) and
-**ask questions in plain language**.
+Citera AI is **YOUR DOCUMENT INTELLIGENCE ASSISTANT**. *Your Documents. Your Answers.* Users **upload arbitrary PDF documents** (academic notes, textbooks, business reports, contracts, policies, research papers, financial reports, manuals, guides, college documents, and other text-based PDFs) and **ask questions in plain language**.
 
-- Questions about the documents ("What is the minimum attendance?") are answered with **RAG**
+- Questions about the documents ("What is the minimum attendance?", "What are the contract terms?") are answered with **RAG**
   (Retrieval-Augmented Generation): the app finds the relevant passages and makes the LLM answer
   **only from them**, with document names and page numbers as sources.
 - General questions ("Hi", "What is Python?") are answered directly by the LLM.
@@ -129,9 +127,9 @@ flowchart TD
 
     subgraph QA["QUESTION PIPELINE (LangGraph, once per message)"]
         CH --> K["classify_question"]
-        K -->|"college_document / uncertain"| R["retrieve_documents"]
+        K -->|"document / uncertain"| R["retrieve_documents"]
         K -->|"greeting / general_knowledge"| G["generate_general_answer"]
-        R -->|"relevant chunks, or college question"| A["generate_rag_answer"]
+        R -->|"relevant chunks, or document question"| A["generate_rag_answer"]
         R -->|"uncertain AND nothing relevant"| G
         A --> VA["validate_answer"]
         VA --> OUT(["Response: answer, answer_type, sources, evidence_status, warnings"])
@@ -174,7 +172,7 @@ Frontend  ->  Routes (thin)  ->  Services (business logic)  ->  Repository / FAI
 ## 4. Project structure (what every file does)
 
 ```
-CollegeMate-AI/
+Citera-AI/
 ├── app/
 │   ├── main.py                       App creation, startup, CORS, error handlers, serves the frontend
 │   ├── api/
@@ -211,7 +209,7 @@ CollegeMate-AI/
 ├── data/                             Created/filled at runtime (git-ignored)
 │   ├── uploads/<client_id>/<document_id>.pdf
 │   ├── indexes/<client_id>/<document_id>/index.faiss + index.pkl
-│   └── collegemate.db                SQLite database
+│   └── citera.db                     SQLite database
 ├── tests/                            pytest suite (offline) + one optional real-API integration test
 ├── .env.example                      Template for your private .env
 ├── .gitignore                        Keeps secrets, data and caches out of Git
@@ -354,7 +352,7 @@ sequenceDiagram
     C->>S: load last few messages (history)
     C->>G: invoke(question, owner_id, history)
     G->>L: classify_question
-    alt college question or uncertain
+    alt document question or uncertain
         G->>T: retrieve_documents
         G->>L: generate_rag_answer (only if chunks found)
         G->>G: validate_answer
@@ -370,7 +368,7 @@ sequenceDiagram
 ### Three worked examples
 
 **Example A — "What is the minimum attendance requirement?"** (document question)
-1. `classify_question` → `college_document`.
+1. `classify_question` → `document`.
 2. `retrieve_documents`: the question is embedded once; each of the user's *ready* documents is searched;
    results are merged, sorted by score, trimmed to `RETRIEVAL_TOP_K` and filtered by
    `MIN_RELEVANCE_SCORE`. Suppose the top chunk is *"Students must maintain 75% attendance…"*
@@ -387,7 +385,7 @@ sequenceDiagram
 3. Response: answer type `general`, evidence `not_applicable`, no sources.
 
 **Example C — "What are the hostel timings?" but the uploaded PDFs never mention the hostel**
-1. `classify_question` → `college_document`.
+1. `classify_question` → `document`.
 2. `retrieve_documents` finds nothing above the threshold.
 3. `generate_rag_answer` sees no chunks and returns "I couldn't find information about that in your
    uploaded documents…" **without calling the LLM at all**. An LLM that is never asked cannot
@@ -417,7 +415,7 @@ before later keys (like `answer`) exist.
 | `question` | ChatService | The user's latest message |
 | `owner_id` | ChatService | Whose documents may be searched |
 | `history` | ChatService | Recent messages `[{"role", "content"}]` |
-| `route`, `route_reason` | `classify_question` | `greeting`, `general_knowledge`, `college_document` or `uncertain`, plus a short reason |
+| `route`, `route_reason` | `classify_question` | `greeting`, `general_knowledge`, `document` or `uncertain`, plus a short reason |
 | `chunks` | `retrieve_documents` | Relevant chunks already above the score threshold |
 | `document_count` | `retrieve_documents` | How many ready documents the user has |
 | `sufficient_evidence`, `used_source_ids`, `conflict_detected` | `generate_rag_answer` | Raw (unverified) output of the LLM |
@@ -444,7 +442,7 @@ at the state and returns a label; LangGraph maps the label to the next node.
 
 ```
 START → classify_question
-classify_question --(route_after_classification)--> retrieve_documents   if college_document or uncertain
+classify_question --(route_after_classification)--> retrieve_documents   if document or uncertain
                                                  \-> generate_general_answer   if greeting or general_knowledge
 retrieve_documents --(route_after_retrieval)--> generate_rag_answer         normally
                                              \-> generate_general_answer     if route == uncertain AND no chunks
@@ -469,15 +467,15 @@ We built the simplest reliable graph: no agents, no tools — just explicit step
 Keyword matching alone is fragile ("fee" appears in many contexts), so routing is **layered**:
 
 1. **LLM classifier with structured output** (`llm_service.classify`) returns one of four routes plus a
-   reason. The prompt contains definitions and tells the model to prefer `college_document` or
-   `uncertain` whenever a question could plausibly be about the college's own rules, fees, dates or
+   reason. The prompt contains definitions and tells the model to prefer `document` or
+   `uncertain` whenever a question could plausibly be about the user's uploaded documents, rules, fees, dates or
    policies. It also sees the last few messages to resolve follow-ups.
-2. **`uncertain` goes to retrieval**, because answering a fee or date question from general knowledge is a
+2. **`uncertain` goes to retrieval**, because answering a document-specific question from general knowledge is a
    hallucination risk, while retrieval can safely come back empty.
 3. **Safe fallback:** an `uncertain` question that finds nothing relevant in the documents is answered
    generally, and the reply starts with *"(I couldn't find this in your uploaded documents, so this is a
    general answer.)"*.
-4. **No documents uploaded:** a college question gets "you haven't uploaded any ready documents yet".
+4. **No documents uploaded:** a document question gets "you haven't uploaded any ready documents yet".
 5. **Classifier failure:** if the classifier call fails (but the model exists), the route defaults to
    `uncertain`.
 
@@ -491,7 +489,7 @@ questions using the chat history (a possible future improvement).
 
 ## 10. Grounded answers and hallucination control
 
-A **hallucination** is a confident but unsupported answer. For college policies a wrong fee or date is
+A **hallucination** is a confident but unsupported answer. For document policies, contracts, fees or dates a wrong answer is
 costly, so there are several layers of defence:
 
 1. **Untrusted data.** Retrieved PDF text is put inside `<sources>` tags and the system prompt says it is
@@ -529,7 +527,7 @@ costly, so there are several layers of defence:
 |---|---|---|
 | **Local folder** `data/uploads/` | The original PDFs | Needed for **Reprocess** |
 | **FAISS** `data/indexes/` | Vectors + chunk text + metadata, one folder per document | Similarity search |
-| **SQLite** `data/collegemate.db` | Document records and chat history | FAISS cannot answer "who owns this document?", "is it still processing?" or "what was said earlier?" |
+| **SQLite** `data/citera.db` | Document records and chat history | FAISS cannot answer "who owns this document?", "is it still processing?" or "what was said earlier?" |
 
 ### SQLite tables
 
@@ -707,7 +705,7 @@ Request: `message` — 1 to 2,000 characters, not blank.
     }
   ],
   "evidence_status": "strong",
-  "route": "college_document",
+  "route": "document",
   "warnings": []
 }
 ```
@@ -848,8 +846,8 @@ LLM temperatures are set in code: 0.1 for classification and grounded answers (c
 
 ### Not implemented — required before any public deployment
 - **Real authentication and authorization.** "Users" are just random ids from the browser. Anyone who
-  knows or guesses an id can use it. A real multi-college system needs login (OAuth/SSO/JWT), roles
-  (student, staff, admin) and **tenant isolation per college**.
+  knows or guesses an id can use it. A real multi-tenant system needs login (OAuth/SSO/JWT), roles
+  (user, staff, admin) and **tenant isolation per organization or user**.
 - HTTPS, a reverse proxy, and rate limiting by IP/user shared across processes (the current limiter is
   in-memory and per process).
 - A production database (e.g. PostgreSQL) and a vector database if you scale beyond one machine.

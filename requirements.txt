@@ -1,4 +1,4 @@
-# CollegeMate AI dependencies.
+# Citera AI dependencies.
 # Lower bounds only, so pip picks the newest compatible releases for your Python version.
 # After a successful install and test run you can freeze exact versions:  pip freeze > requirements.lock.txt
 

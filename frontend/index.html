@@ -3,34 +3,61 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>CollegeMate AI</title>
+  <title>Citera AI — Your Document Intelligence Assistant</title>
+  <meta name="description" content="Citera AI: YOUR DOCUMENT INTELLIGENCE ASSISTANT. Your Documents. Your Answers. Upload any PDF, ask questions about its contents, and receive AI-generated answers grounded in the document." />
   <link rel="stylesheet" href="/style.css" />
 </head>
 <body>
   <div class="app">
     <!-- Left panel: documents -->
     <aside class="sidebar">
-      <h1>🎓 CollegeMate AI</h1>
+      <div class="brand-header">
+        <div class="brand-logo">
+          <div class="brand-icon-box">
+            <svg class="brand-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+              <circle cx="11" cy="14" r="2"></circle>
+              <line x1="16" y1="14" x2="16" y2="14.01"></line>
+            </svg>
+          </div>
+          <div class="brand-info">
+            <h1>Citera AI</h1>
+            <span class="brand-tagline">YOUR DOCUMENT INTELLIGENCE ASSISTANT</span>
+          </div>
+        </div>
+        <p class="brand-subtext">Your Documents. Your Answers.</p>
+      </div>
 
-      <section>
+      <section class="upload-section">
         <h2>Your documents</h2>
-        <label class="upload-btn" for="file-input">+ Upload PDF(s)</label>
+        <label class="upload-btn" for="file-input">
+          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="12" y1="5" x2="12" y2="19"></line>
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+          </svg>
+          Upload PDF(s)
+        </label>
         <input id="file-input" type="file" accept="application/pdf,.pdf" multiple hidden />
         <div id="upload-status" class="status" role="status" aria-live="polite"></div>
         <ul id="doc-list" class="doc-list"></ul>
-        <p id="doc-empty" class="hint">No documents yet. Upload a college PDF to get started.</p>
+        <p id="doc-empty" class="hint">No documents yet. Upload any PDF to get started.</p>
       </section>
 
-      <p class="hint small">
-        Questions about fees, rules or dates are answered from your documents, with sources.
-        General questions are answered directly.
-      </p>
+      <div class="sidebar-footer">
+        <p class="hint small">
+          Upload arbitrary PDFs (contracts, research papers, reports, notes, manuals, guides). Questions are answered grounded in your documents with verified source citations, or answered directly for general topics.
+        </p>
+      </div>
     </aside>
 
     <!-- Right panel: chat -->
     <main class="chat">
       <header class="chat-header">
-        <h2>Chat</h2>
+        <div class="chat-header-title">
+          <h2>Chat Assistant</h2>
+          <span class="chat-header-desc">Grounded document intelligence &amp; general knowledge</span>
+        </div>
         <button id="clear-btn" type="button" class="link-btn">Clear chat</button>
       </header>
 
@@ -43,10 +70,16 @@
           id="message-input"
           rows="1"
           maxlength="2000"
-          placeholder="Ask about your college documents, or anything else…"
+          placeholder="Ask questions about your documents, or anything else…"
           aria-label="Your message"
         ></textarea>
-        <button id="send-btn" type="submit">Send</button>
+        <button id="send-btn" type="submit">
+          <span>Send</span>
+          <svg class="send-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="22" y1="2" x2="11" y2="13"></line>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+          </svg>
+        </button>
       </form>
     </main>
   </div>

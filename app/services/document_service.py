@@ -1,7 +1,7 @@
 """Document lifecycle: upload -> process -> index -> list -> reprocess -> delete.
 
 Processing is synchronous in this version: the upload request waits until the PDF is
-indexed. That is simple and fine for normal college PDFs (a few seconds). Move
+indexed. That is simple and fine for normal PDFs (a few seconds). Move
 processing to a background worker (e.g. Celery/RQ, or FastAPI BackgroundTasks for
 very light loads) when PDFs are large, many users upload at once, or requests start
 hitting timeouts. The `status` column and status endpoint are already in place for that.

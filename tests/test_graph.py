@@ -20,7 +20,8 @@ def _ask(services, question):
 
 
 # ------------------------------------------------------------------ routing functions
-def test_college_and_uncertain_routes_go_to_retrieval():
+def test_document_and_uncertain_routes_go_to_retrieval():
+    assert route_after_classification({"route": "document"}) == "retrieve"
     assert route_after_classification({"route": "college_document"}) == "retrieve"
     assert route_after_classification({"route": "uncertain"}) == "retrieve"
 
@@ -32,6 +33,7 @@ def test_greeting_and_general_routes_skip_retrieval():
 
 def test_uncertain_without_evidence_falls_back_to_general():
     assert route_after_retrieval({"route": "uncertain", "chunks": []}) == "general"
+    assert route_after_retrieval({"route": "document", "chunks": []}) == "rag"
     assert route_after_retrieval({"route": "college_document", "chunks": []}) == "rag"
 
 
@@ -62,7 +64,7 @@ def test_grounded_answer_includes_document_and_page(services):
     assert response.warnings == []
 
 
-def test_college_question_with_no_documents_says_so_without_calling_llm(services, fake_llm):
+def test_document_question_with_no_documents_says_so_without_calling_llm(services, fake_llm):
     response = _ask(services, "What is the minimum attendance?")
     assert response.answer_type == "insufficient_evidence"
     assert response.evidence_status == "none"
@@ -70,7 +72,7 @@ def test_college_question_with_no_documents_says_so_without_calling_llm(services
     assert fake_llm.rag_calls == []
 
 
-def test_college_question_not_covered_by_documents_is_insufficient(services, fake_llm):
+def test_document_question_not_covered_by_documents_is_insufficient(services, fake_llm):
     _upload(services, "fees.pdf", [FEES_TEXT])
     response = _ask(services, "What are the hostel curfew timings?")
     assert response.answer_type == "insufficient_evidence"

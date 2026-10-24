@@ -41,11 +41,20 @@ async def lifespan(_app: FastAPI):
     services.documents.recover_after_restart()
     if not services.llm.is_configured:
         logger.warning("GROQ_API_KEY is not set: chat will return an error until it is configured.")
-    logger.info("CollegeMate AI started")
+    logger.info("Citera AI started")
     yield
 
 
-app = FastAPI(title="CollegeMate AI", version="1.0.0", lifespan=lifespan)
+app = FastAPI(
+    title="Citera AI",
+    description=(
+        "YOUR DOCUMENT INTELLIGENCE ASSISTANT — Your Documents. Your Answers. "
+        "Upload any PDF, ask questions about its contents, and receive AI-generated answers "
+        "grounded in the document. The application also supports general conversations."
+    ),
+    version="1.0.0",
+    lifespan=lifespan,
+)
 
 # CORS: only the origins listed in settings. The bundled frontend is served from the
 # same origin, so this matters only if you host the frontend elsewhere.

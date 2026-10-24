@@ -4,14 +4,14 @@
           |
    classify_question
       |            \\
-  (college/        (greeting/general)
+  (document/        (greeting/general)
    uncertain)            |
       |                  |
  retrieve_documents      |
    |          \\          |
  (chunks     (uncertain + no chunks)
   found or        |
-  college)        |
+  document)       |
    |              |
  generate_rag_answer   generate_general_answer
    |                          |
@@ -26,7 +26,7 @@ Why LangGraph instead of a plain LangChain chain or an agent?
   * LangGraph lets *us* define the allowed steps and branches explicitly (nodes and
     edges) over a shared typed state. The LLM is used inside nodes, but the control
     flow is plain, testable Python. For a support-style assistant that must not
-    hallucinate college policies, predictability matters more than autonomy.
+    hallucinate document facts, predictability matters more than autonomy.
 """
 
 from langgraph.graph import END, START, StateGraph

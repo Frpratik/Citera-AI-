@@ -1,4 +1,4 @@
-// CollegeMate AI frontend: plain JavaScript, no build step.
+// Citera AI frontend: plain JavaScript, no build step.
 //
 // Security note: everything coming from the server (answers, file names, snippets) is
 // inserted with `textContent`, never `innerHTML`, so model output or PDF text can
@@ -12,12 +12,16 @@
 // security (see README), it only keeps different browsers' data apart.
 function getClientId() {
   let id = null;
-  try { id = localStorage.getItem("collegemate_client_id"); } catch (e) { /* storage blocked */ }
+  try {
+    id = localStorage.getItem("citera_client_id") || localStorage.getItem("collegemate_client_id");
+  } catch (e) { /* storage blocked */ }
   if (!id) {
     id = (crypto.randomUUID && crypto.randomUUID()) ||
          Array.from(crypto.getRandomValues(new Uint8Array(16)), b => b.toString(16).padStart(2, "0")).join("");
-    try { localStorage.setItem("collegemate_client_id", id); } catch (e) { /* ignore */ }
   }
+  try {
+    localStorage.setItem("citera_client_id", id);
+  } catch (e) { /* ignore */ }
   return id;
 }
 const CLIENT_ID = getClientId();
@@ -84,9 +88,12 @@ const TYPE_LABELS = {
 
 function addWelcome() {
   const box = el("div", "message welcome");
-  box.appendChild(el("div", "text",
-    "Hi! Upload your college PDFs, then ask things like “What is the minimum attendance?” " +
-    "You can also just chat."));
+  const badge = el("div", "welcome-badge", "YOUR DOCUMENT INTELLIGENCE ASSISTANT");
+  const title = el("div", "welcome-title", "Citera AI");
+  const sub = el("div", "welcome-tagline", "Your Documents. Your Answers.");
+  const desc = el("div", "text",
+    "Upload any PDF (reports, contracts, research papers, manuals, notes, policies) to receive answers grounded in your documents with page citations. You can also ask general conversational questions.");
+  box.append(badge, title, sub, desc);
   messagesEl.appendChild(box);
 }
 

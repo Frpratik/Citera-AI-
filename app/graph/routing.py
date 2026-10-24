@@ -19,7 +19,7 @@ relevance threshold and answer validation as a second line of defence.
 
 from app.graph.state import GraphState
 
-RETRIEVAL_ROUTES = {"college_document", "uncertain"}
+RETRIEVAL_ROUTES = {"document", "college_document", "uncertain"}
 
 
 def route_after_classification(state: GraphState) -> str:
