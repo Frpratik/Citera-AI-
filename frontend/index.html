@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CollegeMate AI</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <div class="app">
+    <!-- Left panel: documents -->
+    <aside class="sidebar">
+      <h1>🎓 CollegeMate AI</h1>
+
+      <section>
+        <h2>Your documents</h2>
+        <label class="upload-btn" for="file-input">+ Upload PDF(s)</label>
+        <input id="file-input" type="file" accept="application/pdf,.pdf" multiple hidden />
+        <div id="upload-status" class="status" role="status" aria-live="polite"></div>
+        <ul id="doc-list" class="doc-list"></ul>
+        <p id="doc-empty" class="hint">No documents yet. Upload a college PDF to get started.</p>
+      </section>
+
+      <p class="hint small">
+        Questions about fees, rules or dates are answered from your documents, with sources.
+        General questions are answered directly.
+      </p>
+    </aside>
+
+    <!-- Right panel: chat -->
+    <main class="chat">
+      <header class="chat-header">
+        <h2>Chat</h2>
+        <button id="clear-btn" type="button" class="link-btn">Clear chat</button>
+      </header>
+
+      <div id="messages" class="messages" aria-live="polite"></div>
+
+      <div id="error-banner" class="error-banner" role="alert" hidden></div>
+
+      <form id="chat-form" class="chat-form">
+        <textarea
+          id="message-input"
+          rows="1"
+          maxlength="2000"
+          placeholder="Ask about your college documents, or anything else…"
+          aria-label="Your message"
+        ></textarea>
+        <button id="send-btn" type="submit">Send</button>
+      </form>
+    </main>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,22 @@
+# Secrets
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+
+# Runtime data (uploaded PDFs, FAISS indexes, SQLite database)
+data/uploads/*
+data/indexes/*
+data/*.db
+data/*.db-journal
+!data/uploads/.gitkeep
+!data/indexes/.gitkeep
+
+# Editors / OS
+.idea/
+.vscode/
+.DS_Store
