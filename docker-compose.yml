@@ -1,0 +1,65 @@
+# Two ways to use this file:
+#
+#   docker compose up -d                       only the database (for development: you run the
+#                                              app yourself with uvicorn)
+#   docker compose --profile full up -d --build   the whole stack: database + web app + worker
+#
+# The full stack reads JWT_SECRET and GROQ_API_KEY from .env (see .env.example). Without a
+# JWT_SECRET the app container stops at start-up with a clear message.
+
+services:
+  db:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: citera
+      POSTGRES_PASSWORD: citera
+      POSTGRES_DB: citera
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U citera"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  app:
+    profiles: ["full"]
+    build: .
+    env_file: .env
+    environment: &shared-environment
+      ENVIRONMENT: production            # the app then refuses to start without JWT_SECRET (from .env)
+      DATABASE_URL: postgresql://citera:citera@db:5432/citera   # "db" is this file's database service
+      LOG_FORMAT: json
+      EMBEDDED_WORKER: "false"           # the worker below does the background work
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - appdata:/app/data                # uploaded PDFs, shared with the worker
+      - models:/home/app/.cache/huggingface   # downloaded AI models, kept between restarts
+    restart: unless-stopped
+
+  worker:
+    profiles: ["full"]
+    build: .
+    command: ["python", "-m", "app.worker"]
+    env_file: .env
+    environment: *shared-environment
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - appdata:/app/data
+      - models:/home/app/.cache/huggingface
+    restart: unless-stopped
+    healthcheck:
+      disable: true                      # no web server in this container
+
+volumes:
+  pgdata:
+  appdata:
+  models:

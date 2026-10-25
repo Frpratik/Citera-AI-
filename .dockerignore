@@ -1,0 +1,15 @@
+# Keep secrets, local data and clutter OUT of the image.
+.env
+.venv
+.git
+.github
+.pytest_cache
+.ruff_cache
+__pycache__
+*.pyc
+data
+tests
+eval
+docs
+*.md
+docker-compose*.yml

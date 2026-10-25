@@ -1,0 +1,17 @@
+# What the app needs to RUN. (Tools for developing and testing are in requirements-dev.txt.)
+fastapi>=0.115
+uvicorn[standard]>=0.30
+pydantic-settings>=2.3
+pypdf>=4.0
+langchain-text-splitters>=0.3
+psycopg[binary]>=3.2
+psycopg-pool>=3.2
+pgvector>=0.3
+numpy>=1.26
+sentence-transformers>=3.0
+langchain-groq>=0.2
+langgraph>=0.2
+argon2-cffi>=23.1
+PyJWT>=2.8
+python-multipart>=0.0.9
+prometheus-client>=0.20

@@ -1,0 +1,6 @@
+# Everything needed to develop and test, on top of the runtime requirements.
+-r requirements.txt
+pytest>=8.0
+httpx>=0.27
+# Pinned: a new ruff release can add rules and suddenly fail a build nobody touched.
+ruff==0.17.2
