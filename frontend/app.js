@@ -4,7 +4,7 @@
 //  * Everything that comes from the server (answers, file names, snippets, errors) is put on the
 //    page with textContent / createElement, NEVER as HTML. Text from a PDF or from the AI can
 //    therefore never run as code.
-//  * The login token is kept in sessionStorage (gone when the tab closes), not localStorage.
+//  * The login token is kept in sessionStorage (gone when the tab closes), not the long-lived kind.
 "use strict";
 
 (() => {
@@ -40,10 +40,10 @@
 
   const ANSWER_LABELS = {
     document_grounded: "From your documents",
-    insufficient_evidence: "Not found in your documents",
-    conflicting_information: "Your documents disagree",
+    insufficient_evidence: "Not in your documents",
+    conflicting_information: "Documents disagree",
     general: "General answer",
-    passages_only: "AI unavailable: matching passages",
+    passages_only: "AI unavailable: passages only",
   };
 
   // ------------------------------------------------------------------ state
@@ -54,6 +54,7 @@
     pollTimer: null,
     chatBusy: false,
     processingNotice: false,
+    readyDocs: 0,
   };
 
   // ------------------------------------------------------------------ talking to the server
@@ -76,6 +77,15 @@
     }
     return data;
   }
+
+  // ------------------------------------------------------------------ the library drawer (phones and tablets)
+  function setLibrary(open) {
+    document.body.classList.toggle("library-open", open);
+    $("backdrop").hidden = !open;
+    $("library-btn").setAttribute("aria-expanded", String(open));
+    if (open) $("library-close").focus();
+  }
+  const libraryIsOpen = () => document.body.classList.contains("library-open");
 
   // ------------------------------------------------------------------ sign in / out
   function setMode(mode) {
@@ -118,7 +128,6 @@
   async function enterApp() {
     $("auth-view").hidden = true;
     $("app-view").hidden = false;
-    $("user-area").hidden = false;
     $("user-email").textContent = state.email || "";
     await Promise.all([loadDocuments(), loadHistory()]);
     $("message-input").focus();
@@ -127,15 +136,28 @@
   function logout(message = "") {
     state.token = null;
     state.email = null;
+    state.readyDocs = 0;
     store("remove", "citera_token");
     store("remove", "citera_email");
     stopPolling();
+    setLibrary(false);
     $("doc-list").replaceChildren();
     $("messages").replaceChildren();
     $("app-view").hidden = true;
-    $("user-area").hidden = true;
     $("auth-view").hidden = false;
     $("auth-error").textContent = message;
+  }
+
+  // ------------------------------------------------------------------ the empty page (suggestions)
+  function updateEmptyState() {
+    const hasMessages = $("messages").children.length > 0;
+    $("empty-state").hidden = hasMessages;
+    const hasDocs = state.readyDocs > 0;
+    $("suggestions").hidden = !hasDocs;
+    $("empty-library-btn").hidden = hasDocs;  // the library button is only needed while it is empty
+    $("empty-text").textContent = hasDocs
+      ? "Ask about a specific fact, rule or number. Pick a starter and finish the sentence, or write your own. Every answer shows the page it came from."
+      : "Add a PDF to your library to begin. It takes a few seconds to be read and made searchable.";
   }
 
   // ------------------------------------------------------------------ documents
@@ -143,8 +165,9 @@
     const list = $("doc-list");
     list.replaceChildren();
     $("doc-empty").hidden = documents.length > 0;
+    state.readyDocs = documents.filter((d) => d.status === "ready").length;
     for (const doc of documents) {
-      const meta = doc.status === "ready" ? `${doc.page_count} pages, ${doc.chunk_count} chunks` : "";
+      const meta = doc.status === "ready" ? ` ${doc.page_count} pages, ${doc.chunk_count} passages` : "";
       const actions = el("div", { class: "doc-actions" });
       if (doc.status === "failed") {
         const retry = el("button", { type: "button", class: "link-btn", text: "Try again" });
@@ -155,12 +178,13 @@
       remove.addEventListener("click", () => deleteDocument(doc));
       actions.append(remove);
 
-      list.append(el("li", { class: "doc" },
+      list.append(el("li", { class: `doc ${doc.status}` },
         el("div", { class: "doc-name", text: doc.filename }),
-        el("div", { class: "doc-meta" }, el("span", { class: `badge ${doc.status}`, text: doc.status }), meta ? ` ${meta}` : ""),
+        el("div", { class: "doc-meta" }, el("span", { class: `badge ${doc.status}`, text: doc.status }), meta),
         doc.error ? el("div", { class: "doc-error", text: doc.error }) : null,
         actions));
     }
+    updateEmptyState();
   }
 
   function stopPolling() {
@@ -195,7 +219,7 @@
       try {
         await api("/api/documents", { method: "POST", form });
         $("upload-status").textContent = `${file.name} uploaded. It is being processed.`;
-        state.processingNotice = true;  // cleared by loadDocuments once nothing is processing any more
+        state.processingNotice = true;
       } catch (e) {
         $("upload-status").textContent = `${file.name}: ${e.message}`;
       }
@@ -217,26 +241,46 @@
 
   // ------------------------------------------------------------------ chat
   function scrollToEnd() {
-    const box = $("messages");
+    const box = $("scroller");
     box.scrollTop = box.scrollHeight;
   }
 
   function addMessage(role, text) {
-    const empty = $("messages").querySelector(".empty-chat");
-    if (empty) empty.remove();
     const body = el("div", { class: "msg-text", text });
-    const node = el("div", { class: `msg ${role}` }, body);
+    let node;
+    if (role === "user") {
+      node = el("div", { class: "msg user" }, el("div", { class: "slip" }, body));
+    } else {
+      node = el("div", { class: "msg assistant" }, el("div", { class: "who", text: "Citera" }), body);
+    }
     $("messages").append(node);
+    updateEmptyState();
     scrollToEnd();
     return { node, body };
   }
 
+  function setThinking(message, label) {
+    message.body.className = "msg-text msg-status";
+    message.body.replaceChildren(`${label}`, el("span", { class: "dots", "aria-hidden": "true" }, el("i"), el("i"), el("i")));
+  }
+
   function renderAnswer(message, result) {
+    message.body.className = "msg-text";
     message.body.textContent = result.answer;
     const meta = el("div", { class: "msg-meta" },
       el("span", { class: `badge ${result.answer_type}`, text: ANSWER_LABELS[result.answer_type] || result.answer_type }));
     if (result.evidence_status === "strong" || result.evidence_status === "moderate") {
       meta.append(el("span", { class: `badge ${result.evidence_status}`, text: `${result.evidence_status} evidence` }));
+    }
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      const copy = el("button", { type: "button", class: "link-btn", text: "Copy" });
+      copy.addEventListener("click", () => {
+        navigator.clipboard.writeText(result.answer).then(() => {
+          copy.textContent = "Copied";
+          setTimeout(() => { copy.textContent = "Copy"; }, 1500);
+        }).catch(() => { /* copying is a convenience only */ });
+      });
+      meta.append(copy);
     }
     message.node.append(meta);
     for (const warning of result.warnings || []) message.node.append(el("div", { class: "notice", text: warning }));
@@ -272,8 +316,8 @@
     state.chatBusy = true;
     $("send-btn").disabled = true;
     addMessage("user", text);
-    const reply = addMessage("assistant", "Thinking...");
-    reply.body.className = "msg-text msg-status";
+    const reply = addMessage("assistant", "");
+    setThinking(reply, "Thinking");
     try {
       const response = await fetch("/api/chat/stream", {
         method: "POST",
@@ -297,8 +341,8 @@
         while ((end = buffer.indexOf("\n\n")) !== -1) {
           const event = parseEvent(buffer.slice(0, end));
           buffer = buffer.slice(end + 2);
-          if (event.name === "step") reply.body.textContent = `${event.data.label || event.data.step}...`;
-          else if (event.name === "answer") { reply.body.className = "msg-text"; renderAnswer(reply, event.data); }
+          if (event.name === "step") setThinking(reply, event.data.label || event.data.step);
+          else if (event.name === "answer") renderAnswer(reply, event.data);
           else if (event.name === "error") showMessageError(reply, event.data.message || "Something went wrong.");
         }
       }
@@ -312,8 +356,7 @@
   }
 
   async function loadHistory() {
-    const box = $("messages");
-    box.replaceChildren();
+    $("messages").replaceChildren();
     try {
       const { messages } = await api("/api/chat/history");
       for (const m of messages) {
@@ -324,9 +367,7 @@
         }
       }
     } catch (e) { /* leave the chat empty */ }
-    if (!box.children.length) {
-      box.append(el("p", { class: "empty-chat", text: "Ask a question about your documents. Answers show the page they came from." }));
-    }
+    updateEmptyState();
     scrollToEnd();
   }
 
@@ -334,6 +375,23 @@
     if (!window.confirm("Clear your chat history?")) return;
     try { await api("/api/chat/history", { method: "DELETE" }); } catch (e) { /* ignore */ }
     await loadHistory();
+  }
+
+  function submitQuestion(text) {
+    const question = text.trim();
+    if (!question || state.chatBusy) return;
+    $("message-input").value = "";
+    autosize();
+    sendMessage(question);
+  }
+
+  // The question box grows with what you type, up to a limit.
+  function autosize() {
+    const box = $("message-input");
+    const limit = window.innerHeight * 0.34;
+    box.style.height = "auto";
+    box.style.height = `${Math.min(box.scrollHeight, limit)}px`;
+    box.style.overflowY = box.scrollHeight > limit ? "auto" : "hidden";  // a scrollbar only when really needed
   }
 
   // ------------------------------------------------------------------ usage
@@ -355,6 +413,12 @@
     $("usage-dialog").showModal();
   }
 
+  // ------------------------------------------------------------------ drag and drop a PDF anywhere on the page
+  function hasFiles(event) {
+    return event.dataTransfer && Array.from(event.dataTransfer.types || []).includes("Files");
+  }
+  function appIsVisible() { return !$("app-view").hidden; }
+
   // ------------------------------------------------------------------ wiring
   $("tab-login").addEventListener("click", () => setMode("login"));
   $("tab-register").addEventListener("click", () => setMode("register"));
@@ -364,19 +428,46 @@
   $("usage-close").addEventListener("click", () => $("usage-dialog").close());
   $("clear-btn").addEventListener("click", clearHistory);
   $("file-input").addEventListener("change", (e) => uploadFiles(Array.from(e.target.files)));
+  $("library-btn").addEventListener("click", () => setLibrary(!libraryIsOpen()));
+  $("library-close").addEventListener("click", () => { setLibrary(false); $("library-btn").focus(); });
+  $("empty-library-btn").addEventListener("click", () => setLibrary(true));
+  $("backdrop").addEventListener("click", () => setLibrary(false));
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape" && libraryIsOpen()) setLibrary(false); });
+
+  // A starter chip puts the beginning of a question in the box for you to finish. (Broad requests
+  // like "summarise everything" match no passage well, so we teach specific questions instead.)
+  for (const chip of document.querySelectorAll("[data-suggestion]")) {
+    chip.addEventListener("click", () => {
+      const box = $("message-input");
+      box.value = chip.dataset.suggestion;
+      autosize();
+      box.focus();
+      box.setSelectionRange(box.value.length, box.value.length);
+    });
+  }
 
   $("chat-form").addEventListener("submit", (event) => {
     event.preventDefault();
-    const text = $("message-input").value.trim();
-    if (!text || state.chatBusy) return;
-    $("message-input").value = "";
-    sendMessage(text);
+    submitQuestion($("message-input").value);
   });
+  $("message-input").addEventListener("input", autosize);
   $("message-input").addEventListener("keydown", (event) => {
-    if (event.key === "Enter" && !event.shiftKey) {  // Enter sends; Shift+Enter makes a new line
+    if (event.key === "Enter" && !event.shiftKey && !event.isComposing) {  // Enter sends; Shift+Enter = new line
       event.preventDefault();
       $("chat-form").requestSubmit();
     }
+  });
+
+  window.addEventListener("dragenter", (e) => { if (appIsVisible() && hasFiles(e)) $("drop-overlay").hidden = false; });
+  window.addEventListener("dragover", (e) => { if (appIsVisible() && hasFiles(e)) e.preventDefault(); });
+  window.addEventListener("dragleave", (e) => { if (!e.relatedTarget) $("drop-overlay").hidden = true; });
+  window.addEventListener("drop", (e) => {
+    if (!appIsVisible() || !hasFiles(e)) return;
+    e.preventDefault();
+    $("drop-overlay").hidden = true;
+    const pdfs = Array.from(e.dataTransfer.files).filter((f) => f.name.toLowerCase().endsWith(".pdf"));
+    if (pdfs.length) uploadFiles(pdfs);
+    else $("upload-status").textContent = "Only PDF files can be added.";
   });
 
   // On page load: if a token survived in this tab, check it is still good.

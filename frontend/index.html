@@ -2,26 +2,21 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#f4efe4" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#1c1a17" media="(prefers-color-scheme: dark)">
   <title>Citera AI</title>
   <meta name="description" content="Ask questions about your PDFs and get answers with page numbers.">
   <link rel="stylesheet" href="/style.css">
   <script src="/app.js" defer></script>
 </head>
 <body>
-  <header class="topbar">
-    <h1>Citera AI <span class="tagline">Your documents. Your answers.</span></h1>
-    <div id="user-area" class="user-area" hidden>
-      <span id="user-email" class="user-email"></span>
-      <button id="usage-btn" type="button" class="link-btn">Usage</button>
-      <button id="logout-btn" type="button" class="link-btn">Log out</button>
-    </div>
-  </header>
-
-  <main>
-    <!-- Sign in / create account -->
-    <section id="auth-view" class="card auth-card" aria-labelledby="auth-title">
-      <h2 id="auth-title">Welcome</h2>
+  <!-- Sign in: a sheet of paper on the desk -->
+  <main id="auth-view" class="auth-view">
+    <div class="auth-sheet paper">
+      <p class="eyebrow">Citera</p>
+      <h1 class="auth-title">Your documents.<br>Your answers.</h1>
+      <p class="auth-lede">Upload PDFs and ask in plain English. Every answer shows the page it came from, and if it is not in your documents, it says so.</p>
       <div class="tabs" role="tablist" aria-label="Account">
         <button id="tab-login" type="button" role="tab" aria-selected="true" class="tab active">Log in</button>
         <button id="tab-register" type="button" role="tab" aria-selected="false" class="tab">Create account</button>
@@ -33,42 +28,78 @@
         <input id="password" name="password" type="password" autocomplete="current-password" minlength="8" required>
         <p id="password-hint" class="hint" hidden>At least 8 characters.</p>
         <p id="auth-error" class="error" role="alert"></p>
-        <button id="auth-submit" type="submit" class="primary">Log in</button>
+        <button id="auth-submit" type="submit" class="ink-btn">Log in</button>
       </form>
-    </section>
-
-    <!-- The app -->
-    <div id="app-view" class="layout" hidden>
-      <aside class="card docs-panel" aria-labelledby="docs-title">
-        <h2 id="docs-title">Your documents</h2>
-        <label class="upload-btn">
-          <input id="file-input" type="file" accept="application/pdf,.pdf" multiple>
-          <span>Upload PDF</span>
-        </label>
-        <p id="upload-status" class="hint" role="status"></p>
-        <p id="doc-empty" class="hint">No documents yet. Upload a PDF to start asking questions about it.</p>
-        <ul id="doc-list" class="doc-list"></ul>
-      </aside>
-
-      <section class="card chat-panel" aria-labelledby="chat-title">
-        <div class="chat-head">
-          <h2 id="chat-title">Chat</h2>
-          <button id="clear-btn" type="button" class="link-btn">Clear history</button>
-        </div>
-        <div id="messages" class="messages" role="log" aria-live="polite" aria-label="Conversation"></div>
-        <form id="chat-form" class="chat-form">
-          <label for="message-input" class="visually-hidden">Your question</label>
-          <textarea id="message-input" rows="2" maxlength="2000" placeholder="Ask a question about your documents..." required></textarea>
-          <button id="send-btn" type="submit" class="primary">Send</button>
-        </form>
-      </section>
     </div>
   </main>
 
+  <!-- The app: the chat fills the whole screen -->
+  <div id="app-view" class="shell" hidden>
+    <header class="appbar">
+      <button id="library-btn" type="button" class="bar-btn" aria-controls="library" aria-expanded="false">
+        <span class="bar-icon" aria-hidden="true"></span><span>Library</span>
+      </button>
+      <p class="brand">Citera</p>
+      <div id="user-area" class="bar-actions">
+        <span id="user-email" class="user-email"></span>
+        <button id="usage-btn" type="button" class="bar-btn">Usage</button>
+        <button id="logout-btn" type="button" class="bar-btn">Log out</button>
+      </div>
+    </header>
+
+    <div class="workspace">
+      <aside id="library" class="library paper" aria-labelledby="library-title">
+        <div class="library-head">
+          <h2 id="library-title">Library</h2>
+          <button id="library-close" type="button" class="bar-btn drawer-only">Close</button>
+        </div>
+        <label class="upload-drop">
+          <input id="file-input" type="file" accept="application/pdf,.pdf" multiple>
+          <span class="upload-title">Add a PDF</span>
+          <span class="upload-sub">or drop one anywhere on the page</span>
+        </label>
+        <p id="upload-status" class="note" role="status"></p>
+        <p id="doc-empty" class="note">Nothing here yet. Add a PDF and it will be read, split into passages and made searchable.</p>
+        <ul id="doc-list" class="doc-list"></ul>
+      </aside>
+      <div id="backdrop" class="backdrop" hidden></div>
+
+      <section class="chat" aria-label="Chat">
+        <div id="scroller" class="scroller">
+          <div class="page">
+            <div id="empty-state" class="empty-state">
+              <p class="eyebrow">Citera</p>
+              <h2 id="empty-title">Ask your documents</h2>
+              <p id="empty-text">Add a PDF to your library to begin.</p>
+              <div id="suggestions" class="suggestions" hidden>
+                <button type="button" class="chip" data-suggestion="What is the deadline for ">What is the deadline for...</button>
+                <button type="button" class="chip" data-suggestion="How much is ">How much is...</button>
+                <button type="button" class="chip" data-suggestion="What happens if ">What happens if...</button>
+              </div>
+              <button id="empty-library-btn" type="button" class="chip drawer-only">Open library</button>
+            </div>
+            <div id="messages" class="messages" role="log" aria-live="polite" aria-label="Conversation"></div>
+          </div>
+        </div>
+
+        <form id="chat-form" class="composer">
+          <div class="composer-box paper">
+            <label for="message-input" class="visually-hidden">Your question</label>
+            <textarea id="message-input" rows="1" maxlength="2000" placeholder="Ask a question..." required></textarea>
+            <button id="send-btn" type="submit" class="ink-btn send">Send</button>
+          </div>
+          <p class="composer-foot">Answers come only from your documents. <button id="clear-btn" type="button" class="link-btn">Clear history</button></p>
+        </form>
+      </section>
+    </div>
+
+    <div id="drop-overlay" class="drop-overlay" hidden><p>Drop your PDF to add it to the library</p></div>
+  </div>
+
   <dialog id="usage-dialog" aria-labelledby="usage-title">
-    <h2 id="usage-title">Your usage (last 24 hours)</h2>
+    <h2 id="usage-title">Your usage, last 24 hours</h2>
     <dl id="usage-list" class="usage-list"></dl>
-    <button id="usage-close" type="button" class="primary">Close</button>
+    <button id="usage-close" type="button" class="ink-btn">Close</button>
   </dialog>
 </body>
 </html>
